@@ -38,6 +38,7 @@ import Footer from './components/Footer';
 import NoticeBoard from './components/NoticeBoard';
 import AdmissionForm from './components/AdmissionForm';
 import StudentPortal from './components/StudentPortal';
+import StudentList from './components/StudentList';
 
 // Assets
 // @ts-ignore
@@ -3042,8 +3043,21 @@ export default function App() {
             </motion.div>
           )}
 
+          {/* ==================== STUDENT LIST VIEW ==================== */}
+          {(activeTab === 'student_list' || activeTab === 'students_list') && (
+            <motion.div
+              key="student_list"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-left"
+            >
+              <StudentList lang={lang} />
+            </motion.div>
+          )}
+
           {/* ==================== DYNAMIC CUSTOM CONTENT VIEW ==================== */}
-          {!['home', 'academics', 'notices', 'admissions', 'gallery', 'contact', 'portal'].includes(activeTab) && (
+          {!['home', 'academics', 'notices', 'admissions', 'gallery', 'contact', 'portal', 'student_list', 'students_list'].includes(activeTab) && (
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 15 }}

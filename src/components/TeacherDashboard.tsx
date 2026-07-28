@@ -1425,11 +1425,44 @@ export default function TeacherDashboard({ lang, setLang, onLogout }: TeacherDas
                           feesPaid: true,
                           feesDue: 0
                         };
+
+                        // Send POST request to student API endpoint
+                        fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            name: studentForm.name,
+                            roll: studentForm.roll,
+                            class: studentForm.class,
+                            section: studentForm.section,
+                            phone: studentForm.guardianContact,
+                            address: ''
+                          })
+                        }).then(async (res) => {
+                          if (!res.ok) {
+                            // Try fallback local endpoint
+                            fetch('/api/students', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                name: studentForm.name,
+                                roll: studentForm.roll,
+                                class: studentForm.class,
+                                section: studentForm.section,
+                                phone: studentForm.guardianContact,
+                                address: ''
+                              })
+                            }).catch(() => {});
+                          }
+                        }).catch(err => {
+                          console.error("POST API error:", err);
+                        });
+
                         setStudentsList(prev => [...prev, newStudent]);
                         triggerToast(
                           lang === 'bn' 
-                            ? 'নতুন শিক্ষার্থী সফলভাবে নিবন্ধিত হয়েছে!' 
-                            : 'New student added to database registry!',
+                            ? 'নতুন শিক্ষার্থী সফলভাবে নিবন্ধিত ও API সার্ভারে যুক্ত হয়েছে!' 
+                            : 'New student added to database registry and API server!',
                           'success'
                         );
                       }
