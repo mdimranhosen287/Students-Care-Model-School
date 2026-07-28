@@ -39,6 +39,7 @@ import NoticeBoard from './components/NoticeBoard';
 import AdmissionForm from './components/AdmissionForm';
 import StudentPortal from './components/StudentPortal';
 import StudentList from './components/StudentList';
+import { getApiUrl } from './lib/api';
 
 // Assets
 // @ts-ignore
@@ -133,7 +134,8 @@ export default function App() {
       let merged = getMergedFrontendData(saved);
 
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/banner`);
+        const apiUrl = getApiUrl('/api/banner');
+        const res = await fetch(apiUrl);
         const text = await res.text();
         
         // If the PHP file is returned as raw source code or HTML, parse error is avoided.

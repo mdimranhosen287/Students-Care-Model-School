@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, UserPlus, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { getApiUrl } from '../lib/api';
 
 interface AddStudentModalProps {
   onClose: () => void;
@@ -30,16 +31,8 @@ export default function AddStudentModal({ onClose, refreshStudentList, lang = 'b
     setLoading(true);
     setStatusMessage(null);
 
-    const primaryApiUrl = 'https://schoolbreakend.smartschoolmanagementsystem.com/api/students';
-    const fallbackApiUrl = 'https://schoolbackend.smartschoolmanagementsystem.com/api/students';
-    const localApiUrl = '/api/students';
-
-    let success = false;
-    let errorMessage = '';
-
     try {
-      // 1. Try Primary API Endpoint
-      let response = await fetch(primaryApiUrl, {
+      let response = await fetch(getApiUrl('/api/students'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,95 +40,32 @@ export default function AddStudentModal({ onClose, refreshStudentList, lang = 'b
         body: JSON.stringify(formData),
       });
 
-      let result: any = null;
-      try {
-        result = await response.json();
-      } catch (parseErr) {
-        // Fallback if non-JSON response
+      if (!response.ok) {
+        // Fallback directly to explicit backend URL if getApiUrl returned non-ok
+        response = await fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
       }
+
+      const result = await response.json();
 
       if (response.ok) {
-        success = true;
+        alert(lang === 'bn' ? 'শিক্ষার্থী সফলভাবে যুক্ত করা হয়েছে!' : 'Student added successfully!');
+        refreshStudentList(); // টেবিল রিফ্রেশ করতে
+        onClose(); // ফর্ম বা মডাল বন্ধ করতে
       } else {
-        // 2. Try Secondary/Fallback URL if primary fails
-        try {
-          const fallbackRes = await fetch(fallbackApiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(formData),
-          });
-
-          if (fallbackRes.ok) {
-            success = true;
-          } else {
-            // 3. Try Local Backend API
-            const localRes = await fetch(localApiUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(formData),
-            });
-            if (localRes.ok) {
-              success = true;
-            } else {
-              errorMessage = (result && (result.error || result.message)) || `Server returned status ${response.status}`;
-            }
-          }
-        } catch (fErr) {
-          // Local fallback try
-          try {
-            const localRes = await fetch(localApiUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(formData),
-            });
-            if (localRes.ok) {
-              success = true;
-            } else {
-              errorMessage = 'Failed to submit student to backend';
-            }
-          } catch (lErr) {
-            errorMessage = 'Network connection failed';
-          }
-        }
-      }
-
-      if (success) {
+        alert('Failed: ' + (result.error || result.message || 'Error occurred'));
         setStatusMessage({
-          text: lang === 'bn' ? 'শিক্ষার্থী সফলভাবে যুক্ত করা হয়েছে!' : 'Student added successfully!',
-          type: 'success'
-        });
-        setTimeout(() => {
-          alert(lang === 'bn' ? 'শিক্ষার্থী সফলভাবে যুক্ত করা হয়েছে!' : 'Student added successfully!');
-          refreshStudentList();
-          onClose();
-        }, 300);
-      } else {
-        alert('Failed: ' + (errorMessage || 'Could not save student record.'));
-        setStatusMessage({
-          text: 'Failed: ' + (errorMessage || 'Could not save student record.'),
+          text: 'Failed: ' + (result.error || result.message || 'Error occurred'),
           type: 'error'
         });
       }
     } catch (error: any) {
       console.error('Error adding student:', error);
-      // Final attempt at local backend endpoint
-      try {
-        const localRes = await fetch(localApiUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        });
-
-        if (localRes.ok) {
-          alert(lang === 'bn' ? 'শিক্ষার্থী সফলভাবে যুক্ত করা হয়েছে!' : 'Student added successfully!');
-          refreshStudentList();
-          onClose();
-          return;
-        }
-      } catch (e) {
-        // Ignore
-      }
-
       alert('Error: ' + (error.message || 'Network error occurred'));
       setStatusMessage({ text: 'Error: ' + (error.message || 'Network error occurred'), type: 'error' });
     } finally {

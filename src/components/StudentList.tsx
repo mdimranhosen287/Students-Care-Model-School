@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { User, Search, RefreshCw, Filter, Phone, BookOpen, AlertCircle, Loader2, Users, Plus } from 'lucide-react';
 import AddStudentModal from './AddStudentModal';
+import { getApiUrl } from '../lib/api';
 
 interface Student {
   sl?: number | string;
@@ -37,16 +38,15 @@ export default function StudentList({ lang = 'bn' }: StudentListProps) {
     setLoading(true);
     setError(null);
 
-    const baseUrl = import.meta.env.VITE_API_URL || '';
-    const primaryApiUrl = `${baseUrl}/api/students`;
-    const fallbackApiUrl = 'https://schoolbackend.smartschoolmanagementsystem.com/api/students';
-
     try {
-      let res = await fetch(primaryApiUrl);
+      let res = await fetch(getApiUrl('/api/students'));
       
       if (!res.ok) {
-        // Attempt fallback URL if primary fails
-        res = await fetch(fallbackApiUrl);
+        res = await fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students');
+      }
+
+      if (!res.ok) {
+        res = await fetch('https://schoolbackend.smartschoolmanagementsystem.com/api/students');
       }
 
       if (!res.ok) {
@@ -55,7 +55,6 @@ export default function StudentList({ lang = 'bn' }: StudentListProps) {
 
       const data = await res.json();
 
-      // Handle both array response or { students: [...] } response object
       if (Array.isArray(data)) {
         setStudents(data);
       } else if (data && Array.isArray(data.students)) {
@@ -67,7 +66,6 @@ export default function StudentList({ lang = 'bn' }: StudentListProps) {
       console.error("Error fetching students:", err);
       setError(err.message || "failed_to_fetch");
       
-      // Try local fallback fetch if backend is unresponsive
       try {
         const localRes = await fetch('/api/students');
         if (localRes.ok) {

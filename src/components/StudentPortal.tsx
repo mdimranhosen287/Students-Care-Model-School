@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import AdmitCardModal from './AdmitCardModal';
+import { getApiUrl } from '../lib/api';
 import { 
   Lock, 
   LogOut, 
@@ -169,7 +170,7 @@ export default function StudentPortal({ lang: propLang, onBackToHome }: StudentP
   useEffect(() => {
     const fetchLiveBannerSettings = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/banner`);
+        const res = await fetch(getApiUrl('/api/banner'));
         const text = await res.text();
         
         // If the PHP file is returned as raw source code or HTML, parse error is avoided.
@@ -244,7 +245,7 @@ export default function StudentPortal({ lang: propLang, onBackToHome }: StudentP
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/reset-password`, {
+      const response = await fetch(getApiUrl('/api/reset-password'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1199,7 +1200,7 @@ export default function StudentPortal({ lang: propLang, onBackToHome }: StudentP
   useEffect(() => {
     const fetchStudentsFromDatabase = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/students`);
+        const response = await fetch(getApiUrl('/api/students'));
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data) && data.length > 0) {
@@ -1820,7 +1821,7 @@ export default function StudentPortal({ lang: propLang, onBackToHome }: StudentP
   const saveFrontendDataToServer = async (customMsgBn?: string, customMsgEn?: string) => {
     if (!frontendData) return;
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/frontend-data`, {
+      const response = await fetch(getApiUrl('/api/frontend-data'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -2070,7 +2071,7 @@ export default function StudentPortal({ lang: propLang, onBackToHome }: StudentP
 
     // Async PHP Backend Login Sync
     try {
-      fetch(`${import.meta.env.VITE_API_URL}/api/login`, {
+      fetch(getApiUrl('/api/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: cleanUser, password: cleanPass })
@@ -17177,7 +17178,7 @@ async function buildAttendanceExcelSheet(monthName, className, section, students
                         formData.append('bannerGradient', (frontendData.settings as any).bannerGradient ? '1' : '0');
                         formData.append('logoUrl', frontendData.settings.logoUrl || '');
 
-                        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/banner`, {
+                        const response = await fetch(getApiUrl('/api/banner'), {
                           method: 'POST',
                           body: formData
                         });
@@ -19264,7 +19265,7 @@ class PageSectionController extends Controller {
                                 const formData = new FormData();
                                 formData.append('slider', JSON.stringify(listItems));
 
-                                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/slider`, {
+                                const response = await fetch(getApiUrl('/api/slider'), {
                                   method: 'POST',
                                   body: formData
                                 });
@@ -21576,7 +21577,7 @@ class PageSectionController extends Controller {
                       fd.append('photo', studentPhotoFile);
                     }
 
-                    fetch(`${import.meta.env.VITE_API_URL}/api/slider`, {
+                    fetch(getApiUrl('/api/students'), {
                       method: 'POST',
                       body: fd
                     })

@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { getApiUrl } from '../lib/api';
 import { 
   CheckCircle, 
   AlertCircle, 
@@ -345,7 +346,7 @@ export default function AdmissionForm({ lang: appLang, onBack }: AdmissionFormPr
     };
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/students`, {
+      const response = await fetch(getApiUrl('/api/students'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

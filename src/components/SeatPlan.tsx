@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import html2pdf from 'html2pdf.js';
+import { getApiUrl } from '../lib/api';
 
 interface Student {
   id: string;
@@ -38,7 +39,7 @@ const SeatPlan: React.FC<SeatPlanProps> = ({ students: propStudents }) => {
   const handleDownload = async () => {
     // Call API to save seat plan
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/seat-plan`, {
+      const response = await fetch(getApiUrl('/api/seat-plan'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

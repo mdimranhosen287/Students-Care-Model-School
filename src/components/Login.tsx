@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getApiUrl } from '../lib/api';
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -17,7 +18,7 @@ const Login: React.FC = () => {
 
     try {
       // PHP Backend
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/login`, {
+      const response = await fetch(getApiUrl('/api/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, role }),
