@@ -331,73 +331,71 @@ export default function AdmissionForm({ lang: appLang, onBack }: AdmissionFormPr
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      const randomId = `SCMS-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-      setGeneratedAppId(randomId);
 
-      // Create FormData to send to php backend
-      const fd = new FormData();
-      fd.append('name', formData.studentName);
-      fd.append('roll', formData.roll || `ADM-${randomId.split('-').pop()}`);
-      fd.append('class', formData.selectedClass || 'N/A');
-      fd.append('section', formData.section || 'A');
-      fd.append('mobile_number', formData.phone);
-      fd.append('address', formData.presentFullAddress);
-      
-      fd.append('guardian', formData.fatherName || formData.motherName || 'N/A');
-      if (photoFile) {
-        fd.append('photo', photoFile);
-      }
+    const studentData = {
+      name: formData.studentName,
+      roll: formData.roll || `STD-${Math.floor(1000 + Math.random() * 9000)}`,
+      class_name: formData.selectedClass || 'N/A',
+      section: formData.section || 'A',
+      mobile_number: formData.phone,
+      address: formData.presentFullAddress,
+      guardian: formData.fatherName || formData.motherName || 'N/A'
+    };
 
-      fetch('/api/students', {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/students`, {
         method: 'POST',
-        body: fd
-      })
-      .then(res => {
-        if (!res.ok) {
-          console.warn('Admission /api/students returned non-OK status');
-        }
-        return res.json().catch(() => ({}));
-      })
-      .then(data => {
-        console.log('Admission inserted successfully via backend API:', data);
-      })
-      .catch(err => {
-        console.error('Admission /api/students error:', err);
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(studentData),
       });
 
-      // Integrate with local storage to sync with Admin Panel pending admissions
-      const local = localStorage.getItem('school_pending_admissions');
-      let currentList = [];
-      if (local) {
-        try {
-          currentList = JSON.parse(local);
-        } catch (e) {}
+      const data = await response.json();
+      if (response.ok) {
+        alert('Admission submitted successfully to database!');
+        console.log('Saved to DB:', data);
       } else {
-        currentList = [
-          { id: '1', studentName: 'Fahim Shakir', guardianName: 'Md. Shakirul Islam', requestedClass: 'Class 9', previousGPA: '5.00', status: 'pending' },
-          { id: '2', studentName: 'Nusrat Zaman', guardianName: 'Md. Zaman Akhter', requestedClass: 'Class 6', previousGPA: '4.85', status: 'pending' },
-          { id: '3', studentName: 'Zubayer Al Mahmud', guardianName: 'Dr. Mahmudul Hasan', requestedClass: 'Class 11', previousGPA: '5.00', status: 'pending' }
-        ];
+        console.error('Failed to save:', data);
       }
-
-      const newAdmission = {
-        id: randomId,
-        studentName: formData.studentName,
-        guardianName: formData.fatherName || formData.motherName || 'N/A',
-        requestedClass: formData.selectedClass,
-        previousGPA: 'N/A',
-        status: 'pending'
-      };
-
-      currentList.push(newAdmission);
-      localStorage.setItem('school_pending_admissions', JSON.stringify(currentList));
-
-      setSubmissionSuccess(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      console.error('Network or API error:', error);
     }
+
+    const randomId = `SCMS-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    setGeneratedAppId(randomId);
+
+    // Integrate with local storage to sync with Admin Panel pending admissions
+    const local = localStorage.getItem('school_pending_admissions');
+    let currentList = [];
+    if (local) {
+      try {
+        currentList = JSON.parse(local);
+      } catch (e) {}
+    } else {
+      currentList = [
+        { id: '1', studentName: 'Fahim Shakir', guardianName: 'Md. Shakirul Islam', requestedClass: 'Class 9', previousGPA: '5.00', status: 'pending' },
+        { id: '2', studentName: 'Nusrat Zaman', guardianName: 'Md. Zaman Akhter', requestedClass: 'Class 6', previousGPA: '4.85', status: 'pending' },
+        { id: '3', studentName: 'Zubayer Al Mahmud', guardianName: 'Dr. Mahmudul Hasan', requestedClass: 'Class 11', previousGPA: '5.00', status: 'pending' }
+      ];
+    }
+
+    const newAdmission = {
+      id: randomId,
+      studentName: formData.studentName,
+      guardianName: formData.fatherName || formData.motherName || 'N/A',
+      requestedClass: formData.selectedClass,
+      previousGPA: 'N/A',
+      status: 'pending'
+    };
+
+    currentList.push(newAdmission);
+    localStorage.setItem('school_pending_admissions', JSON.stringify(currentList));
+
+    setSubmissionSuccess(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleReset = () => {

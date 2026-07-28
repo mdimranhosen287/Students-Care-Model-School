@@ -132,7 +132,7 @@ export default function App() {
       let merged = getMergedFrontendData(saved);
 
       try {
-        const res = await fetch('/api/banner');
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/banner`);
         const text = await res.text();
         
         // If the PHP file is returned as raw source code or HTML, parse error is avoided.
