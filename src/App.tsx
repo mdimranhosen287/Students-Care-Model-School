@@ -136,25 +136,23 @@ export default function App() {
       try {
         const apiUrl = getApiUrl('/api/banner');
         const res = await fetch(apiUrl);
-        const text = await res.text();
-        
-        // If the PHP file is returned as raw source code or HTML, parse error is avoided.
-        if (text.trim().startsWith('<?php') || text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html') || !res.ok) {
-          throw new Error('PHP script was not executed (returned raw source or HTML)');
-        }
-        
-        const data = JSON.parse(text);
-        if (data && data.frontend_data) {
-          merged = { ...merged, ...data.frontend_data };
-        }
-        if (data && data.settings) {
-          merged.settings = { ...merged.settings, ...data.settings };
-        }
-        if (data && data.slider) {
-          merged.slider = data.slider;
+        if (res.ok) {
+          const text = await res.text();
+          if (!text.trim().startsWith('<?php') && !text.trim().startsWith('<!DOCTYPE') && !text.trim().startsWith('<html')) {
+            const data = JSON.parse(text);
+            if (data && data.frontend_data) {
+              merged = { ...merged, ...data.frontend_data };
+            }
+            if (data && data.settings) {
+              merged.settings = { ...merged.settings, ...data.settings };
+            }
+            if (data && data.slider) {
+              merged.slider = data.slider;
+            }
+          }
         }
       } catch (err: any) {
-        console.warn('PHP get_banner.php fetch bypassed/failed (expected in development):', err.message);
+        // Fall back quietly to local defaults
       }
 
       setFrontendData(merged);

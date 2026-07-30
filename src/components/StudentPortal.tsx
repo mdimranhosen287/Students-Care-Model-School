@@ -171,38 +171,35 @@ export default function StudentPortal({ lang: propLang, onBackToHome }: StudentP
     const fetchLiveBannerSettings = async () => {
       try {
         const res = await fetch(getApiUrl('/api/banner'));
-        const text = await res.text();
-        
-        // If the PHP file is returned as raw source code or HTML, parse error is avoided.
-        if (text.trim().startsWith('<?php') || text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html') || !res.ok) {
-          throw new Error('PHP script was not executed (returned raw source or HTML)');
-        }
-        
-        const data = JSON.parse(text);
-        if (data && data.frontend_data) {
-          setFrontendData((prev: any) => ({
-            ...prev,
-            ...data.frontend_data
-          }));
-        }
-        if (data && data.settings) {
-          setFrontendData((prev: any) => ({
-            ...prev,
-            settings: {
-              ...prev?.settings,
-              ...data.settings
+        if (res.ok) {
+          const text = await res.text();
+          if (!text.trim().startsWith('<?php') && !text.trim().startsWith('<!DOCTYPE') && !text.trim().startsWith('<html')) {
+            const data = JSON.parse(text);
+            if (data && data.frontend_data) {
+              setFrontendData((prev: any) => ({
+                ...prev,
+                ...data.frontend_data
+              }));
             }
-          }));
-        }
-        if (data && data.slider) {
-          setFrontendData((prev: any) => ({
-            ...prev,
-            slider: data.slider
-          }));
+            if (data && data.settings) {
+              setFrontendData((prev: any) => ({
+                ...prev,
+                settings: {
+                  ...prev?.settings,
+                  ...data.settings
+                }
+              }));
+            }
+            if (data && data.slider) {
+              setFrontendData((prev: any) => ({
+                ...prev,
+                slider: data.slider
+              }));
+            }
+          }
         }
       } catch (err: any) {
-        console.warn('PHP get_banner.php fetch bypassed/failed in portal (expected in development):', err.message);
-        // We already have frontendData loaded from localStorage during useState initialization, so no extra action is needed.
+        // Silent catch for background banner sync
       }
     };
     fetchLiveBannerSettings();
@@ -2069,18 +2066,15 @@ export default function StudentPortal({ lang: propLang, onBackToHome }: StudentP
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = password;
 
-    // Async PHP Backend Login Sync
+    // Async Backend Login Sync
     try {
       fetch(getApiUrl('/api/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: cleanUser, password: cleanPass })
-      }).then(res => res.json())
-        .then(data => {
-          console.log('Backend login auth response:', data);
-        }).catch(err => {
-          console.warn('PHP login.php fetch bypassed/failed (expected in local/offline):', err);
-        });
+      }).then(res => {
+        if (res.ok) return res.json();
+      }).catch(() => {});
     } catch (e) {
       // ignore network errors
     }
