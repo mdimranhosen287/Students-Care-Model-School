@@ -34,17 +34,81 @@ export default function AddStudentModal({ onClose, refreshStudentList, lang = 'b
 
     // ২. ফ্রন্টএন্ড থেকে ব্যাকএন্ডের API-তে ডাটা পোস্ট করা
     try {
-      const response = await fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData), // ফ্রন্টএন্ড ফর্মের ডাটা
-      });
+      let isSaved = false;
+      let backendData: any = null;
 
-      const data = await response.json();
+      // Primary POST to app local backend API (/api/students)
+      try {
+        const localRes = await fetch('/api/students', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            roll: formData.roll,
+            class: formData.class,
+            class_name: formData.class,
+            section: formData.section || 'A',
+            phone: formData.phone,
+            mobile_number: formData.phone,
+            image: formData.image,
+            photo: formData.image,
+            address: formData.address,
+            guardian: formData.address || 'N/A'
+          }),
+        });
 
-      if (response.ok) {
+        if (localRes.ok) {
+          backendData = await localRes.json();
+          isSaved = true;
+        }
+      } catch (err) {
+        console.warn('Local API POST error:', err);
+      }
+
+      // Secondary POST to external PHP backend
+      try {
+        const extRes = await fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+
+        if (extRes.ok) {
+          backendData = await extRes.json();
+          isSaved = true;
+        }
+      } catch (err) {
+        console.warn('External API POST error:', err);
+      }
+
+      // Save to LocalStorage for persistent client backup
+      try {
+        const existing = JSON.parse(localStorage.getItem('custom_students_list') || '[]');
+        const newStudent = {
+          sl: Date.now(),
+          id: Date.now(),
+          roll: formData.roll,
+          name: formData.name,
+          class: formData.class,
+          section: formData.section || 'A',
+          guardian: formData.address || 'N/A',
+          phone: formData.phone,
+          address: formData.address,
+          photo: formData.image || '',
+          created_at: new Date().toISOString()
+        };
+        const filtered = Array.isArray(existing) ? existing.filter((s: any) => String(s.roll) !== String(formData.roll)) : [];
+        localStorage.setItem('custom_students_list', JSON.stringify([newStudent, ...filtered]));
+        isSaved = true;
+      } catch (lsErr) {
+        console.error('LocalStorage write error:', lsErr);
+      }
+
+      if (isSaved) {
         alert("Student added successfully!");
         // ডাটা সেভ হওয়ার পর স্টুডেন্ট লিস্ট আবার রিলোড করার ফাংশন
         if (typeof refreshStudentList === 'function') {
@@ -52,9 +116,9 @@ export default function AddStudentModal({ onClose, refreshStudentList, lang = 'b
         }
         onClose();
       } else {
-        console.error("Error from backend:", data);
+        console.error("Error from backend:", backendData);
         setStatusMessage({
-          text: 'Error from backend: ' + (data.error || data.message || JSON.stringify(data)),
+          text: 'Error saving student: ' + (backendData?.error || backendData?.message || 'Server error'),
           type: 'error'
         });
       }

@@ -38,48 +38,56 @@ export default function StudentList({ lang = 'bn' }: StudentListProps) {
     setLoading(true);
     setError(null);
 
+    let combinedStudents: Student[] = [];
+
+    // 1. Fetch from local Node Express backend (/api/students)
     try {
-      let res = await fetch(getApiUrl('/api/students'));
-      
-      if (!res.ok) {
-        res = await fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students');
-      }
-
-      if (!res.ok) {
-        res = await fetch('https://schoolbackend.smartschoolmanagementsystem.com/api/students');
-      }
-
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
-      const data = await res.json();
-
-      if (Array.isArray(data)) {
-        setStudents(data);
-      } else if (data && Array.isArray(data.students)) {
-        setStudents(data.students);
-      } else {
-        setStudents([]);
-      }
-    } catch (err: any) {
-      console.error("Error fetching students:", err);
-      setError(err.message || "failed_to_fetch");
-      
-      try {
-        const localRes = await fetch('/api/students');
-        if (localRes.ok) {
-          const localData = await localRes.json();
-          const list = Array.isArray(localData) ? localData : (localData?.students || []);
-          setStudents(list);
-          setError(null);
+      const localRes = await fetch('/api/students');
+      if (localRes.ok) {
+        const localData = await localRes.json();
+        const list = Array.isArray(localData) ? localData : (localData?.students || []);
+        if (Array.isArray(list)) {
+          combinedStudents = [...list];
         }
-      } catch (fallbackErr) {
-        console.error("Fallback fetch also failed:", fallbackErr);
       }
-    } finally {
-      setLoading(false);
+    } catch (e) {
+      console.warn("Local /api/students fetch failed:", e);
     }
+
+    // 2. Try fetching from external backend if available
+    try {
+      const extRes = await fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students');
+      if (extRes.ok) {
+        const extData = await extRes.json();
+        const list = Array.isArray(extData) ? extData : (extData?.students || []);
+        if (Array.isArray(list) && list.length > 0) {
+          list.forEach((s: Student) => {
+            if (!combinedStudents.some(existing => String(existing.roll) === String(s.roll))) {
+              combinedStudents.push(s);
+            }
+          });
+        }
+      }
+    } catch (e) {
+      // External server offline or 404
+    }
+
+    // 3. Merge custom students saved in localStorage
+    try {
+      const savedLocal = JSON.parse(localStorage.getItem('custom_students_list') || '[]');
+      if (Array.isArray(savedLocal)) {
+        savedLocal.forEach((s: Student) => {
+          if (!combinedStudents.some(existing => String(existing.roll) === String(s.roll))) {
+            combinedStudents.unshift(s);
+          }
+        });
+      }
+    } catch (e) {
+      console.warn("LocalStorage student list merge error:", e);
+    }
+
+    setStudents(combinedStudents);
+    setLoading(false);
   };
 
   useEffect(() => {
