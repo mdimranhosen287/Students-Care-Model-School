@@ -1,4 +1,4 @@
-export const DEFAULT_API_BASE = 'https://schoolbreakend.smartschoolmanagementsystem.com';
+export const DEFAULT_API_BASE = '';
 
 /**
  * Constructs a clean API URL avoiding duplicate `/api/api` path segments.
@@ -15,7 +15,7 @@ export function getApiUrl(path: string): string {
   let cleanPath = path.startsWith('/') ? path : `/${path}`;
 
   // Fix double /api/api duplication if base URL ends with /api and path starts with /api/
-  if (baseUrl.endsWith('/api') && cleanPath.startsWith('/api/')) {
+  if (baseUrl && baseUrl.endsWith('/api') && cleanPath.startsWith('/api/')) {
     baseUrl = baseUrl.substring(0, baseUrl.length - 4);
   }
 

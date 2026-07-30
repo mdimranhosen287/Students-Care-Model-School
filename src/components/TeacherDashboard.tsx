@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getApiUrl } from '../lib/api';
 import {
   GraduationCap,
   Calendar,
@@ -1427,7 +1428,7 @@ export default function TeacherDashboard({ lang, setLang, onLogout }: TeacherDas
                         };
 
                         // Send POST request to student API endpoint
-                        fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students', {
+                        fetch(getApiUrl('/api/students'), {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({
@@ -1440,8 +1441,7 @@ export default function TeacherDashboard({ lang, setLang, onLogout }: TeacherDas
                           })
                         }).then(async (res) => {
                           if (!res.ok) {
-                            // Try fallback local endpoint
-                            fetch('/api/students', {
+                            fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({
