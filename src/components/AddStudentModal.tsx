@@ -27,47 +27,43 @@ export default function AddStudentModal({ onClose, refreshStudentList, lang = 'b
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    // ১. এটি ব্রাউজারের অটো-রিফ্রেশ হওয়া বন্ধ করবে
     e.preventDefault();
     setLoading(true);
     setStatusMessage(null);
 
+    // ২. ফ্রন্টএন্ড থেকে ব্যাকএন্ডের API-তে ডাটা পোস্ট করা
     try {
-      let response = await fetch(getApiUrl('/api/students'), {
+      const response = await fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formData), // ফ্রন্টএন্ড ফর্মের ডাটা
       });
 
-      if (!response.ok) {
-        // Fallback directly to explicit backend URL if getApiUrl returned non-ok
-        response = await fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData),
-        });
-      }
-
-      const result = await response.json();
+      const data = await response.json();
 
       if (response.ok) {
-        alert(lang === 'bn' ? 'শিক্ষার্থী সফলভাবে যুক্ত করা হয়েছে!' : 'Student added successfully!');
-        refreshStudentList(); // টেবিল রিফ্রেশ করতে
-        onClose(); // ফর্ম বা মডাল বন্ধ করতে
+        alert("Student added successfully!");
+        // ডাটা সেভ হওয়ার পর স্টুডেন্ট লিস্ট আবার রিলোড করার ফাংশন
+        if (typeof refreshStudentList === 'function') {
+          refreshStudentList();
+        }
+        onClose();
       } else {
-        alert('Failed: ' + (result.error || result.message || 'Error occurred'));
+        console.error("Error from backend:", data);
         setStatusMessage({
-          text: 'Failed: ' + (result.error || result.message || 'Error occurred'),
+          text: 'Error from backend: ' + (data.error || data.message || JSON.stringify(data)),
           type: 'error'
         });
       }
     } catch (error: any) {
-      console.error('Error adding student:', error);
-      alert('Error: ' + (error.message || 'Network error occurred'));
-      setStatusMessage({ text: 'Error: ' + (error.message || 'Network error occurred'), type: 'error' });
+      console.error("Network error:", error);
+      setStatusMessage({
+        text: 'Network error: ' + (error.message || 'Error occurred'),
+        type: 'error'
+      });
     } finally {
       setLoading(false);
     }
