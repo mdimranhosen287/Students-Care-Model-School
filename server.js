@@ -295,68 +295,64 @@ async function startServer() {
       let photoPath = "";
       if (req.file) {
         photoPath = "uploads/" + req.file.filename;
-      } else if (body.photo) {
-        photoPath = body.photo;
+      } else if (body.photo || body.image) {
+        photoPath = body.photo || body.image;
+      }
+
+      // Try forwarding POST to external PHP backend server-side
+      try {
+        await fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name,
+            roll,
+            class: className,
+            class_name: className,
+            section,
+            phone,
+            mobile_number: phone,
+            address,
+            guardian,
+            photo: photoPath,
+            image: photoPath
+          }),
+        });
+      } catch (extErr) {
+        console.warn("External backend POST sync warning:", extErr);
       }
 
       try {
         const query = 'INSERT INTO students (name, roll, class_name, section, mobile_number, address, guardian) VALUES (?, ?, ?, ?, ?, ?, ?);';
         await getPool().execute(query, [name, roll, className, section, phone, address, guardian]);
-
-        // Also update local fallback store
-        const db = getDb();
-        const newStudent = {
-          sl: Date.now(),
-          photo: photoPath,
-          roll,
-          name,
-          class: className,
-          section,
-          guardian,
-          phone,
-          created_at: new Date().toISOString(),
-        };
-        db.students.unshift(newStudent);
-        saveDb(db);
-
-        return res.status(201).json({
-          status: "success",
-          message: "Student record has been successfully inserted into MySQL database table!",
-          student: {
-            name,
-            roll,
-            class: className,
-            section,
-            guardian,
-            mobile_number: phone,
-            address,
-            photo: photoPath || "No Photo Uploaded",
-          },
-        });
       } catch (e) {
-        console.error("MySQL Insert error:", e);
-        // Fallback to local store if MySQL fails
-        const db = getDb();
-        const newStudent = {
-          sl: Date.now(),
-          photo: photoPath,
-          roll,
-          name,
-          class: className,
-          section,
-          guardian,
-          phone,
-          created_at: new Date().toISOString(),
-        };
-        db.students.unshift(newStudent);
-        saveDb(db);
-
-        return res.status(201).json({
-          status: "success",
-          message: "Student record saved to local store (MySQL fallback)!",
-          student: newStudent,
-        });
+        console.warn("MySQL Insert notice (using local store fallback):", e.message);
       }
+
+      // Always update local fallback store
+      const db = getDb();
+      const newStudent = {
+        sl: Date.now(),
+        photo: photoPath,
+        roll,
+        name,
+        class: className,
+        section,
+        guardian,
+        phone,
+        address,
+        created_at: new Date().toISOString(),
+      };
+      db.students.unshift(newStudent);
+      saveDb(db);
+
+      return res.status(201).json({
+        status: "success",
+        message: "Student added successfully and synchronized!",
+        student: newStudent,
+      });
     };
 
     if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
@@ -374,9 +370,21 @@ async function startServer() {
 
   // 5. Get Students List (/api/students)
   const getStudentsHandler = async (req, res) => {
+    let remoteStudents = [];
+    try {
+      const extRes = await fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students');
+      if (extRes.ok) {
+        const extData = await extRes.json();
+        remoteStudents = Array.isArray(extData) ? extData : (extData?.students || []);
+      }
+    } catch (e) {
+      // External server offline or warning
+    }
+
+    let mysqlStudents = [];
     try {
       const [rows] = await getPool().execute("SELECT * FROM students ORDER BY id DESC");
-      const students = rows.map((r, idx) => ({
+      mysqlStudents = rows.map((r, idx) => ({
         sl: r.id || (1024 + idx),
         photo: r.image_url || r.photo || "",
         roll: r.roll,
@@ -387,65 +395,50 @@ async function startServer() {
         phone: r.mobile_number || r.phone,
         created_at: r.created_at || new Date().toISOString(),
       }));
-
-      const classFilter = req.query.class;
-      const sectionFilter = req.query.section;
-      const searchFilter = req.query.search;
-
-      let filtered = [...students];
-
-      if (classFilter) {
-        filtered = filtered.filter((s) => s.class.toLowerCase() === classFilter.toLowerCase());
-      }
-      if (sectionFilter) {
-        filtered = filtered.filter((s) => s.section.toLowerCase() === sectionFilter.toLowerCase());
-      }
-      if (searchFilter) {
-        const q = searchFilter.toLowerCase();
-        filtered = filtered.filter(
-          (s) =>
-            s.name.toLowerCase().includes(q) ||
-            s.roll.toLowerCase().includes(q) ||
-            s.phone.toLowerCase().includes(q)
-        );
-      }
-
-      return res.json({
-        status: "success",
-        count: filtered.length,
-        students: filtered,
-      });
     } catch (e) {
-      console.error("MySQL fetch error, using local fallback:", e);
-      const db = getDb();
-      const classFilter = req.query.class;
-      const sectionFilter = req.query.section;
-      const searchFilter = req.query.search;
-
-      let filtered = [...db.students];
-
-      if (classFilter) {
-        filtered = filtered.filter((s) => s.class.toLowerCase() === classFilter.toLowerCase());
-      }
-      if (sectionFilter) {
-        filtered = filtered.filter((s) => s.section.toLowerCase() === sectionFilter.toLowerCase());
-      }
-      if (searchFilter) {
-        const q = searchFilter.toLowerCase();
-        filtered = filtered.filter(
-          (s) =>
-            s.name.toLowerCase().includes(q) ||
-            s.roll.toLowerCase().includes(q) ||
-            s.phone.toLowerCase().includes(q)
-        );
-      }
-
-      res.json({
-        status: "success",
-        count: filtered.length,
-        students: filtered,
-      });
+      // MySQL fallback
     }
+
+    const db = getDb();
+    const localStudents = db.students || [];
+
+    // Merge without duplicates based on roll
+    const map = new Map();
+    [...remoteStudents, ...mysqlStudents, ...localStudents].forEach(s => {
+      if (s && s.roll) {
+        map.set(String(s.roll), s);
+      }
+    });
+
+    let allStudents = Array.from(map.values());
+
+    const classFilter = req.query.class;
+    const sectionFilter = req.query.section;
+    const searchFilter = req.query.search;
+
+    let filtered = [...allStudents];
+
+    if (classFilter && classFilter !== 'All') {
+      filtered = filtered.filter((s) => (s.class || '').toLowerCase() === classFilter.toLowerCase());
+    }
+    if (sectionFilter && sectionFilter !== 'All') {
+      filtered = filtered.filter((s) => (s.section || '').toLowerCase() === sectionFilter.toLowerCase());
+    }
+    if (searchFilter) {
+      const q = searchFilter.toLowerCase();
+      filtered = filtered.filter(
+        (s) =>
+          (s.name || '').toLowerCase().includes(q) ||
+          (s.roll || '').toLowerCase().includes(q) ||
+          (s.phone || '').toLowerCase().includes(q)
+      );
+    }
+
+    return res.json({
+      status: "success",
+      count: filtered.length,
+      students: filtered,
+    });
   };
   app.get("/api/students", getStudentsHandler);
 
