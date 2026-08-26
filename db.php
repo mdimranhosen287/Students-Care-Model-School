@@ -14,9 +14,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 $servername = "localhost";
-$username = "u398502275_admin";
+$username = "u451653929_admin";
 $password = "Cisfa1998$#@";
-$dbname = "u398502275_StudentsCare";
+$dbname = "u451653929_StudentsCare";
 
 // Create connection
 $conn = new mysqli($servername, $username, $password, $dbname);
