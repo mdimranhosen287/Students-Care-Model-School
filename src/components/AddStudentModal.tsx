@@ -69,7 +69,7 @@ export default function AddStudentModal({ onClose, refreshStudentList, lang = 'b
 
       // Secondary POST to external PHP backend
       try {
-        const extRes = await fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students', {
+        const extRes = await fetch('https://studentscaremodelschool.com/insert.php', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

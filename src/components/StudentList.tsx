@@ -56,7 +56,7 @@ export default function StudentList({ lang = 'bn' }: StudentListProps) {
 
     // 2. Try fetching from external backend if available
     try {
-      const extRes = await fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students');
+      const extRes = await fetch('https://studentscaremodelschool.com/get_students.php');
       if (extRes.ok) {
         const extData = await extRes.json();
         const list = Array.isArray(extData) ? extData : (extData?.students || []);

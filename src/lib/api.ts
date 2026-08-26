@@ -1,4 +1,4 @@
-export const DEFAULT_API_BASE = 'https://schoolbreakend.smartschoolmanagementsystem.com';
+export const DEFAULT_API_BASE = 'https://studentscaremodelschool.com';
 
 /**
  * Constructs a clean API URL.
@@ -21,3 +21,4 @@ export function getApiUrl(path: string): string {
 
   return `${baseUrl}${cleanPath}`;
 }
+

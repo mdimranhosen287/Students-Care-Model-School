@@ -32,7 +32,7 @@ const Login: React.FC = () => {
       // Successful login
       alert(`Welcome ${data.user.name}!`);
       // In a real app, store token/session here
-      window.location.href = '/dashboard';
+      // window.location.href = '/dashboard';
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.');
     }

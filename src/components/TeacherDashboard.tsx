@@ -1441,7 +1441,7 @@ export default function TeacherDashboard({ lang, setLang, onLogout }: TeacherDas
                           })
                         }).then(async (res) => {
                           if (!res.ok) {
-                            fetch('https://schoolbreakend.smartschoolmanagementsystem.com/api/students', {
+                            fetch('https://studentscaremodelschool.com/insert.php', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({
